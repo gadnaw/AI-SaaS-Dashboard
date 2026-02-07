@@ -46,5 +46,8 @@ supabase/.env
 *.swp
 *.swo
 
+# GSD Planning
+.planning
+
 # OS
 Thumbs.db
