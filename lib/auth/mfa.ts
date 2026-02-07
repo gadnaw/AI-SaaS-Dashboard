@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/server'
+import { getSupabaseServerClient } from '@/lib/supabase/server'
 
 export interface MFAEnrollmentResult {
   qrCode: string // Data URL for QR code image

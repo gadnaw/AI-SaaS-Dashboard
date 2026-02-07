@@ -2,6 +2,9 @@
 
 import { Bell, Search, User } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useRealtime } from "@/lib/realtime/provider"
+import { ConnectionIndicator } from "@/components/realtime/connection-indicator"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface HeaderProps {
   title: string
@@ -9,6 +12,8 @@ interface HeaderProps {
 }
 
 export function Header({ title, subtitle }: HeaderProps) {
+  const { ConnectionIndicator: RealtimeIndicator, connectionState } = useRealtime()
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
       <div>
@@ -17,6 +22,11 @@ export function Header({ title, subtitle }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Connection status indicator */}
+        <div className="hidden md:flex items-center gap-2">
+          <RealtimeIndicator showLabel />
+        </div>
+
         {/* Search placeholder */}
         <div className="relative hidden sm:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -30,6 +40,9 @@ export function Header({ title, subtitle }: HeaderProps) {
             )}
           />
         </div>
+
+        {/* Theme toggle */}
+        <ThemeToggle />
 
         {/* Notifications */}
         <button

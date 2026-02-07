@@ -5,11 +5,11 @@ import { createAIClient } from '@/ai/client'
 import { usageTracker } from '@/ai/cost/tracker'
 import { checkLimit, getOptimalModel, getRemainingLimits } from '@/ai/cost/limits'
 import { checkAlert, checkAllPeriodsForAlerts, AlertType } from '@/ai/cost/alerting'
-import { StreamData, experimental } from 'ai'
+import { StreamData } from 'ai'
 
-export const experimental = experimental({
+const aiStreamConfig = {
   sharedStream: true,
-})
+}
 
 export async function POST(request: Request) {
   try {
@@ -52,9 +52,9 @@ export async function POST(request: Request) {
       })
     }
     
-    const { orgId } = await getOrgContext()
+    const { organizationId } = await getOrgContext()
     
-    if (!orgId) {
+    if (!organizationId) {
       return new Response(JSON.stringify({ error: 'Organization context required' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' },
@@ -63,22 +63,8 @@ export async function POST(request: Request) {
     
     const estimatedTokens = Math.ceil(query.length / 4) + 500
     
-    const limitCheck = await checkLimit(orgId, estimatedTokens)
+    const limitCheck = await checkLimit(organizationId, estimatedTokens)
     
-    if (!limitCheck.allowed) {
-      return new Response(JSON.stringify({
-        error: 'Rate limit exceeded',
-        reason: limitCheck.reason,
-      }), {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
-    
-    const selectedModel = getOptimalModel(query)
-    const estimatedTokens = Math.ceil(query.length / 4) + 500
-    
-    const limitCheck = await checkLimit(orgId, estimatedTokens)
     if (!limitCheck.allowed) {
       return new Response(JSON.stringify({
         error: 'Rate limit exceeded',
@@ -90,7 +76,9 @@ export async function POST(request: Request) {
       })
     }
     
-    const { stream, tools } = await createAIClient(query.trim(), orgId, {
+    const selectedModel = getOptimalModel(query)
+    
+    const { stream, tools } = await createAIClient(query.trim(), organizationId, {
       model: selectedModel,
     })
     
@@ -111,14 +99,14 @@ export async function POST(request: Request) {
       },
     })
     
-    const usage = await usageTracker.getUsage(orgId, 'monthly')
-    const alerts = await checkAllPeriodsForAlerts(orgId)
-    const limits = await getRemainingLimits(orgId)
+    const usage = await usageTracker.getUsage(organizationId, 'monthly')
+    const alerts = await checkAllPeriodsForAlerts(organizationId)
+    const limits = await getRemainingLimits(organizationId)
     
     const responseHeaders = new Headers()
     responseHeaders.set('Content-Type', 'text/plain; charset=utf-8')
     responseHeaders.set('X-AI-Model', selectedModel)
-    responseHeaders.set('X-AI-Org-ID', orgId)
+    responseHeaders.set('X-AI-Org-ID', organizationId)
     responseHeaders.set('X-AI-Usage-Prompt-Tokens', String(Math.ceil(query.length / 4)))
     responseHeaders.set('X-AI-Usage-Monthly', String(usage.totalTokens))
     responseHeaders.set('X-AI-Usage-Limit', String(limits.monthly.limit))
@@ -127,13 +115,13 @@ export async function POST(request: Request) {
     const promptTokens = Math.ceil(query.length / 4)
     const completionTokens = Math.ceil(query.length / 2)
     
-    usageTracker.track(orgId, promptTokens, completionTokens).catch(err => {
+    usageTracker.track(organizationId, promptTokens, completionTokens).catch(err => {
       console.error('Failed to track usage:', err)
     })
     
-    checkAlert(orgId, 'monthly').then(alertType => {
+    checkAlert(organizationId, 'monthly').then(alertType => {
       if (alertType) {
-        console.log(`[AI Alert] Org ${orgId}: ${alertType}`)
+        console.log(`[AI Alert] Org ${organizationId}: ${alertType}`)
       }
     }).catch(err => {
       console.error('Failed to check alerts:', err)
@@ -183,16 +171,16 @@ export async function GET(request: Request) {
       })
     }
     
-    const { orgId } = await getOrgContext()
+    const { organizationId } = await getOrgContext()
     
-    if (!orgId) {
+    if (!organizationId) {
       return new Response(JSON.stringify({ error: 'Organization context required' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' },
       })
     }
     
-    const usage = await usageTracker.getUsage(orgId, period)
+    const usage = await usageTracker.getUsage(organizationId, period)
     
     return new Response(JSON.stringify({
       usage,

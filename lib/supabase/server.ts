@@ -5,7 +5,7 @@ import { cookies } from 'next/headers'
  * Creates a Supabase server client for SSR and API routes.
  * Handles cookie management for Next.js 14 App Router.
  */
-export async function createServerClient() {
+export async function getSupabaseServerClient() {
   const cookieStore = await cookies()
 
   return createServerClient(

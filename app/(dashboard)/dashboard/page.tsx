@@ -110,7 +110,7 @@ function DashboardContent() {
           title="Revenue Overview"
           description="Monthly revenue trends"
           loading={isLoading}
-          error={error ? error.message : null}
+          error={error ? (error as Error).message : null}
           empty={!metrics.revenueByMonth?.length}
           emptyMessage="No revenue data available"
         >
@@ -125,7 +125,7 @@ function DashboardContent() {
           title="Customer Growth"
           description="Customer acquisition trends"
           loading={isLoading}
-          error={error ? error.message : null}
+          error={error ? (error as Error).message : null}
           empty={!metrics.revenueByMonth?.length}
           emptyMessage="No customer data available"
         >

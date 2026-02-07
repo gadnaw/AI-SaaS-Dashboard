@@ -1,31 +1,21 @@
-import { createServerClient } from '@/lib/supabase/server'
+import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return []
-        },
-        setAll() {},
-      },
-    }
-  )
+  const supabase = await getSupabaseServerClient()
 
-  const { factorId, code } = await request.json()
+  const { factorId, code, challengeId } = await request.json()
 
-  if (!factorId || !code) {
+  if (!factorId || !code || !challengeId) {
     return NextResponse.json(
-      { error: 'Factor ID and code are required' },
+      { error: 'Factor ID, challenge ID, and code are required' },
       { status: 400 }
     )
   }
 
   const { error } = await supabase.auth.mfa.verify({
     factorId,
+    challengeId,
     code,
   })
 

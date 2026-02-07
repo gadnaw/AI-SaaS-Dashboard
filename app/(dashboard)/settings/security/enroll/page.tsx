@@ -1,31 +1,15 @@
-'use server'
-
-import { enrollMFA, verifyEnrollment } from '@/lib/auth/mfa'
 import { redirect } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
-import { createServerClient } from '@/lib/supabase/server'
+import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { enrollMFA } from '@/lib/auth/mfa'
 
-export async function startEnrollment() {
-  'use server'
-  return await enrollMFA()
-}
-
-export async function completeEnrollment(formData: FormData) {
-  'use server'
-  const factorId = formData.get('factorId') as string
-  const code = formData.get('code') as string
-
-  await verifyEnrollment(factorId, code)
-  revalidatePath('/settings/security')
-  redirect('/settings/security?enrolled=true')
-}
+import { startEnrollment, completeEnrollment } from './actions'
 
 export default async function MFAEnrollmentPage({
   searchParams,
 }: {
   searchParams: { required?: string }
 }) {
-  const supabase = await createServerClient()
+  const supabase = await getSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
