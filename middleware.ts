@@ -1,5 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({
@@ -29,11 +29,30 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make your application
-  // vulnerable to attacks.
+  // Protected routes pattern
+  const protectedRoutes = ['/dashboard']
+  const { pathname } = request.nextUrl
 
-  await supabase.auth.getUser()
+  // Check if route is protected
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  )
+
+  // Allow auth routes (login, signup, etc.)
+  const isAuthRoute = pathname.startsWith('/auth')
+
+  if (isProtectedRoute && !isAuthRoute) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session) {
+      // Redirect to login if no session
+      const loginUrl = new URL('/auth/login', request.url)
+      loginUrl.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+  }
 
   return supabaseResponse
 }
@@ -45,9 +64,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - api/auth/* (auth API routes)
-     * - _next/public (if any)
+     * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/auth/*).*)',
+    '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
 }
